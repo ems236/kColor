@@ -179,35 +179,54 @@ def upSample(img, factor):
     
     return upSampled
 
-img = cv2.imread("bloom.jpeg", cv2.IMREAD_COLOR)
-print(img.shape) 
-# Creating GUI window to display an image on screen
-# first Parameter is windows title (should be in string format)
-# Second Parameter is image array
-#cv2.imshow("got those peps", img)
+def kColor(path, k, sample_factor, output_path):
+    img = cv2.imread(path, cv2.IMREAD_COLOR)
+    #print(img.shape) 
 
-#img = toDouble(img[:200,:200])
-img = toDouble(img)
-sample_factor = 8
-downSampled = downSample(img, sample_factor)
-means = kMeans(downSampled, 16)
-print(means)
+    img = toDouble(img)
+    downSampled = downSample(img, sample_factor)
+    means = kMeans(downSampled, k)
+    #print(means)
 
-#biTone = serpentineKTone(toDouble(img), np.array([[1,1,1],[0,0,0]])) 
-biTone = serpentineKTone(downSampled, means)
-final = toByte(upSample(biTone, sample_factor))
-cv2.imshow("got those peps", final)
-#cv2.imshow("got those og peps", cv2.imread("peps.jpeg", cv2.IMREAD_COLOR))
+    #biTone = serpentineKTone(toDouble(img), np.array([[1,1,1],[0,0,0]])) 
+    biTone = serpentineKTone(downSampled, means)
+    final = toByte(upSample(biTone, sample_factor))
+    #cv2.imshow("got those peps", final)
+    #cv2.imshow("got those og peps", cv2.imread("peps.jpeg", cv2.IMREAD_COLOR))
 
-cv2.imwrite("testKtoned.png", final)
-# To hold the window on screen, we use cv2.waitKey method
-# Once it detected the close input, it will release the control
-# To the next line
-# First Parameter is for holding screen for specified milliseconds
-# It should be positive integer. If 0 pass an parameter, then it will
-# hold the screen until user close it.
-cv2.waitKey(0)
- 
-# It is for removing/deleting created GUI window from screen
-# and memory
-cv2.destroyAllWindows()
+    cv2.imwrite(output_path, final)
+    # To hold the window on screen, we use cv2.waitKey method
+    # Once it detected the close input, it will release the control
+    # To the next line
+    # First Parameter is for holding screen for specified milliseconds
+    # It should be positive integer. If 0 pass an parameter, then it will
+    # hold the screen until user close it.
+    #cv2.waitKey(0)
+    
+    # It is for removing/deleting created GUI window from screen
+    # and memory
+    #cv2.destroyAllWindows()
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Conver an image into a k-toned downsampled representation. Tones are selected with k-means clustering')
+    parser.add_argument('--k', metavar='-k', type=int, nargs='?', default=16,
+                        help='K number of colors to use. Defaults to 16')
+    parser.add_argument('--sample_size', metavar='-s', type=int, nargs='?', default=8,
+                        help='downsampling factor to use. If this is n, every nxn pixels in the original image will be 1 pixel in the downsampled image. Default is 8')
+    parser.add_argument('--output_file', metavar='-o', type=str, nargs='?', default='myImage.png',
+                        help='Output file path to write results to. Default to myImage.png')
+    parser.add_argument('path', nargs=argparse.REMAINDER)
+
+    args = parser.parse_args()
+    if(len(args.path) != 1):
+        print("path positional argument is required")
+        exit()
+    if(args.k <= 0):
+        print("k must be positive")
+        exit()
+    if(args.sample_size <= 0):
+        print("sample size must be positive")
+        exit()
+
+    kColor(args.path[0], args.k, args.sample_size, args.output_file)
+
