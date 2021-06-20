@@ -48,15 +48,15 @@ def conv(img, kernel):
             applyConvToPx(img, x, y, kernel)
 
 #returns pair of closest + loss vector
-#closest by l2 norm
-def closest(val, options):
+#closest by lnorm norm, default is l2
+def closest(val, options, lnorm = 2):
     best = (float('inf'),0,0,0)
     currentIdx = 0
     for opt in options:
         error = np.subtract(val, opt)
         sumSquare = 0
         for channel in error:
-            sumSquare += channel ** 2
+            sumSquare += channel ** lnorm
         if sumSquare < best[0]:
             best = sumSquare,opt,error,currentIdx
         currentIdx += 1
@@ -109,14 +109,14 @@ def toByte(img):
     
     return copy.astype(np.uint8)
 
-def classifyKMean(img, means):
+def classifyKMean(img, means, lnorm):
     rows,cols,_ = img.shape
     classCounts = [0 for _ in means]
     newMeans = np.zeros((len(means), 3))
     error = 0
     for y in range(rows):
         for x in range(cols):
-            pxError,_,_,idx = closest(img[y,x], means)
+            pxError,_,_,idx = closest(img[y,x], means, lnorm)
             classCounts[idx] += 1
             newMeans[idx] = np.add(newMeans[idx], img[y,x])
             error += pxError
@@ -129,7 +129,7 @@ def classifyKMean(img, means):
 
     return error, newMeans
 
-def kMeans(img, k):
+def kMeans(img, k, lnorm):
     #pick k random starts
     means = np.zeros((k, 3))
     for i in range(k):
@@ -137,11 +137,11 @@ def kMeans(img, k):
         means[i] = img[randrange(rows),randrange(cols)]
 
     prevError = float('inf')
-    error,means = classifyKMean(img, means)
+    error,means = classifyKMean(img, means, lnorm)
 
     while error < prevError:
         prevError = error
-        error,means = classifyKMean(img, means)
+        error,means = classifyKMean(img, means, lnorm)
 
     return means
 
@@ -179,13 +179,13 @@ def upSample(img, factor):
     
     return upSampled
 
-def kColor(path, k, sample_factor, output_path):
+def kColor(path, k, sample_factor, lnorm, output_path):
     img = cv2.imread(path, cv2.IMREAD_COLOR)
     #print(img.shape) 
 
     img = toDouble(img)
     downSampled = downSample(img, sample_factor)
-    means = kMeans(downSampled, k)
+    means = kMeans(downSampled, k, lnorm)
     #print(means)
 
     #biTone = serpentineKTone(toDouble(img), np.array([[1,1,1],[0,0,0]])) 
@@ -200,24 +200,29 @@ def kColor(path, k, sample_factor, output_path):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Conver an image into a k-toned downsampled representation. Tones are selected with k-means clustering')
-    parser.add_argument('--k', metavar='-k', type=int, nargs='?', default=16,
+    parser.add_argument('--clusters', "-k", type=int, nargs='?', default=16,
                         help='K number of colors to use. Defaults to 16')
-    parser.add_argument('--sample_size', metavar='-s', type=int, nargs='?', default=8,
+    parser.add_argument('--sample_size', "-s", type=int, nargs='?', default=8,
                         help='downsampling factor to use. If this is n, every nxn pixels in the original image will be 1 pixel in the downsampled image. Default is 8')
-    parser.add_argument('--output_file', metavar='-o', type=str, nargs='?', default='myImage.png',
+    parser.add_argument('--output_file', "-o", type=str, nargs='?', default='myImage.png',
                         help='Output file path to write results to. Default to myImage.png')
+    parser.add_argument('--norm', "-l", type=int, nargs='?', default=2,
+                        help='Norm to use when calculating distance in k clustering. Default is l2 norm. Infinity norm is not supported.')
     parser.add_argument('path', nargs=argparse.REMAINDER)
 
     args = parser.parse_args()
     if(len(args.path) != 1):
         print("path positional argument is required")
         exit()
-    if(args.k <= 0):
-        print("k must be positive")
+    if(args.clusters <= 0):
+        print("clusters must be positive")
         exit()
     if(args.sample_size <= 0):
         print("sample size must be positive")
         exit()
+    if(args.norm <= 0):
+        print("norm must be positive")
+        exit()
 
-    kColor(args.path[0], args.k, args.sample_size, args.output_file)
+    kColor(args.path[0], args.clusters, args.sample_size, args.norm, args.output_file)
 
