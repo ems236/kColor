@@ -196,7 +196,7 @@ def kColor(path, k, sample_factor, lnorm, output_path, hard_coded):
     img = toDouble(img)
     downSampled = downSample(img, sample_factor)
     means = kMeans(downSampled, k, lnorm, hard_coded)
-    print(means)
+    print(f"Using colors {means}")
 
     #biTone = serpentineKTone(toDouble(img), np.array([[1,1,1],[0,0,0]])) 
     biTone = serpentineKTone(downSampled, means)
@@ -208,6 +208,17 @@ def kColor(path, k, sample_factor, lnorm, output_path, hard_coded):
     #cv2.waitKey(0)
     #cv2.destroyAllWindows()
 
+def hexToRGB(hexString):
+    if len(hexString) != 6:
+        print("incorrect length, expecting 6")
+        raise Exception("incorrect length, expecting 6.")
+    
+    r = int(hexString[0:2], 16)
+    g = int(hexString[2:4], 16)
+    b = int(hexString[4:6], 16)
+
+    return [r / 255, g / 255, b / 255]
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Conver an image into a k-toned downsampled representation. Tones are selected with k-means clustering')
     parser.add_argument('--clusters', "-k", type=int, nargs='?', default=16,
@@ -218,11 +229,14 @@ if __name__ == "__main__":
                         help='Output file path to write results to. Default to myImage.png')
     parser.add_argument('--norm', "-l", type=int, nargs='?', default=2,
                         help='Norm to use when calculating distance in k clustering. Default is l2 norm. Infinity norm is not supported.')
+    parser.add_argument('--static_color','-sc', action='append', default=[], type=str,
+                        help='Add a static color in RGB hex format that will not be updated during k clustering. Usage -sc 000000 -sc FFFFFF to add black and white.')
+    
     parser.add_argument('path', nargs=argparse.REMAINDER)
 
     args = parser.parse_args()
     if(len(args.path) != 1):
-        print("path positional argument is required")
+        print("path to input image positional argument is required")
         exit()
     if(args.clusters <= 0):
         print("clusters must be positive")
@@ -234,7 +248,22 @@ if __name__ == "__main__":
         print("norm must be positive")
         exit()
 
-    hard_coded = np.array([[0,0,0], [1,1,1]])
+    if(len(args.static_color) > args.clusters):
+        print("Can't have more static colors than total colors")
+        exit()
+
+    #print(args.static_color)
+
+    color_arr = []
+    for colorStr in args.static_color:
+        try:
+            color_arr.append(hexToRGB(colorStr))
+        except Exception:
+            print(f"Error parsing hex string for static color {colorStr}")
+            exit()
+    
+    #print(color_arr)
+    hard_coded = np.array(color_arr)
     #print(hard_coded)
 
 
