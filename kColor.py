@@ -109,7 +109,7 @@ def toByte(img):
     
     return copy.astype(np.uint8)
 
-def classifyKMean(img, means, lnorm):
+def classifyKMean(img, means, lnorm, static_color_count):
     rows,cols,_ = img.shape
     classCounts = [0 for _ in means]
     newMeans = np.zeros((len(means), 3))
@@ -121,27 +121,37 @@ def classifyKMean(img, means, lnorm):
             newMeans[idx] = np.add(newMeans[idx], img[y,x])
             error += pxError
 
-    for i in range(len(means)):
+    #only do updates for non-static colors
+    for i in range(len(means) - static_color_count):
         if classCounts[i] != 0:
             newMeans[i] /= classCounts[i]
         else:
             newMeans[i] = means[i]
 
+    for i in range(len(means) - static_color_count, len(means)):
+        newMeans[i] = means[i]
+
     return error, newMeans
 
-def kMeans(img, k, lnorm):
+def kMeans(img, k, lnorm, hard_coded):
     #pick k random starts
     means = np.zeros((k, 3))
-    for i in range(k):
+    static_color_count = len(hard_coded)
+    for i in range(k - static_color_count):
         rows,cols,_ = img.shape
         means[i] = img[randrange(rows),randrange(cols)]
 
-    prevError = float('inf')
-    error,means = classifyKMean(img, means, lnorm)
+    for i in range(static_color_count):
+        start = k - static_color_count
+        means[i + start] = hard_coded[i]
 
-    while error < prevError:
+    prevError = float('inf')
+    error,means = classifyKMean(img, means, lnorm, static_color_count)
+
+    EPSILON = 0.01
+    while prevError - error > EPSILON:
         prevError = error
-        error,means = classifyKMean(img, means, lnorm)
+        error,means = classifyKMean(img, means, lnorm, static_color_count)
 
     return means
 
@@ -179,14 +189,14 @@ def upSample(img, factor):
     
     return upSampled
 
-def kColor(path, k, sample_factor, lnorm, output_path):
+def kColor(path, k, sample_factor, lnorm, output_path, hard_coded):
     img = cv2.imread(path, cv2.IMREAD_COLOR)
     #print(img.shape) 
 
     img = toDouble(img)
     downSampled = downSample(img, sample_factor)
-    means = kMeans(downSampled, k, lnorm)
-    #print(means)
+    means = kMeans(downSampled, k, lnorm, hard_coded)
+    print(means)
 
     #biTone = serpentineKTone(toDouble(img), np.array([[1,1,1],[0,0,0]])) 
     biTone = serpentineKTone(downSampled, means)
@@ -224,5 +234,9 @@ if __name__ == "__main__":
         print("norm must be positive")
         exit()
 
-    kColor(args.path[0], args.clusters, args.sample_size, args.norm, args.output_file)
+    hard_coded = np.array([[0,0,0], [1,1,1]])
+    #print(hard_coded)
+
+
+    kColor(args.path[0], args.clusters, args.sample_size, args.norm, args.output_file, hard_coded)
 
