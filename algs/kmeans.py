@@ -1,7 +1,7 @@
 import numpy as np
 from random import randrange
 
-import imgFuncs as utils
+import kColor.algs.imgFuncs as utils
 
 def classifyKMean(img, means, lnorm, static_color_count):
     rows,cols,_ = img.shape

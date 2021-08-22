@@ -9,7 +9,7 @@
 <body>
     <div class="container">
     <h1>Ayyy lmao</h1>
-    <form method="post" action="/submit">
+    <form method="post" action="/submit" enctype="multipart/form-data">
         <div class="form-group">
             <label for="inFile">Input image</label>
             <input type="file" class="form-control-file" id="inFile" name="inFile">
@@ -20,7 +20,15 @@
         </div>
         <div class="form-group">
           <label for="clusters">Number of colors / clusters</label>
-          <input type="number" class="form-control" id="clusters" name="clusters">
+          <input type="number" class="form-control" id="clusters" name="clusters" value=16>
+        </div>
+        <div class="form-group">
+            <label for="clusters">Downsampling rate</label>
+            <input type="number" class="form-control" id="sample_size" name="sample_size" value=8>
+        </div>
+        <div class="form-group">
+            <label for="clusters">l norm to use for distance calculations</label>
+            <input type="number" class="form-control" id="lnorm" name="lnorm" value=2>
         </div>
         <div class="form-group">
             <label for="colors">Hard-coded colors</label>

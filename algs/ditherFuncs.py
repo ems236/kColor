@@ -1,8 +1,8 @@
 import numpy as np
 from datetime import datetime
 
-import convFuncs as conv
-import imgFuncs as utils
+import kColor.algs.convFuncs as conv
+import kColor.algs.imgFuncs as utils
 
 def kTonePx(img, x, y, loss, tones, lossConv):
     start = datetime.now()
